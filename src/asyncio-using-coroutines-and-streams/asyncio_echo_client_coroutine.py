@@ -1,7 +1,9 @@
 # https://pymotw.com/3/asyncio/io_coroutine.html#echo-clienthttps://pymotw.com/3/asyncio/io_coroutine.html#echo-client
+# https://pymotw.com/3/asyncio/ssl.html
 
 import asyncio
 import logging
+import ssl
 import sys
 
 MESSAGES = [
@@ -27,7 +29,14 @@ event_loop = asyncio.get_event_loop()
 async def echo_client(name, address, messages):
     log = logging.getLogger('echo_client_{}'.format(name))
     log.debug('connection to {} port {}'.format(*address))
-    reader, writer = await asyncio.open_connection(*address)
+
+    ssl_context = ssl.create_default_context(
+        ssl.Purpose.SERVER_AUTH
+    )
+    ssl_context.check_hostname = False
+    ssl_context.load_verify_locations('pymotw.crt')
+
+    reader, writer = await asyncio.open_connection(*address, ssl=ssl_context)
 
     # This could be writer.writelines() except that
     # would make it harder to show each part of the message
@@ -38,8 +47,8 @@ async def echo_client(name, address, messages):
         msg_to_send = bytes(msg_to_send, encoding='UTF-8')
         writer.write(msg_to_send)
         log.debug('sending {!r}'.format(msg_to_send))
-    if writer.can_write_eof():
-        writer.write_eof()
+
+    writer.write(b'\x00')
     await writer.drain()
 
     log.debug('waiting for response')
@@ -55,13 +64,13 @@ async def echo_client(name, address, messages):
 
 try:
     # Run two clients
-    ## one by one
+    # # one by one
     event_loop.run_until_complete(echo_client(' ### client 1 ### ', SERVER_ADDRESS, MESSAGES))
     log.debug(' ### client 1 ### completed')
     event_loop.run_until_complete(echo_client(' ### client 2 ### ', SERVER_ADDRESS, MESSAGES))
     log.debug(' ### client 2 ### completed')
 
-    ## asynchronus
+    # # asynchronous
     task3 = event_loop.create_task(echo_client(' ### client 3 ### ', SERVER_ADDRESS, MESSAGES))
     task4 = event_loop.create_task(echo_client(' ### client 4 ### ', SERVER_ADDRESS, MESSAGES))
     event_loop.run_forever()
