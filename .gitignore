@@ -2,3 +2,5 @@ bin/*
 lib*
 pip-selfcheck.json
 share/*
+/src/asyncio-using-coroutines-and-streams/pymotw.crt
+/src/asyncio-using-coroutines-and-streams/pymotw.key
