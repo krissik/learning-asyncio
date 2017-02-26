@@ -3,6 +3,12 @@
 import asyncio
 import functools
 
+async def count():
+    i = 0
+    while i < 15:
+        print(i)
+        await asyncio.sleep(0.001)
+        i += 1
 
 async def run_df(loop):
     print('in run_df')
@@ -14,9 +20,10 @@ async def run_df(loop):
         stdin=None,
         stderr=None,
     )
-
+    print('sleeping - to prove subprocess is not running yet')
+    await asyncio.sleep(0.01)
     try:
-        print('launching process')
+        print('launching subprocess')
         transport, protocol = await proc
         print('waiting for process to complete')
         await cmd_done
@@ -80,10 +87,14 @@ class DFProtocol(asyncio.SubprocessProtocol):
 
 event_loop = asyncio.get_event_loop()
 try:
-    return_code, results = event_loop.run_until_complete(
-        run_df(event_loop)
+
+    (return_code, results), counter_result = event_loop.run_until_complete(
+        asyncio.gather(
+            run_df(event_loop),
+            count()
+        )
     )
-    print('run df finished')
+    print('all tasks finished')
 finally:
     event_loop.close()
 
@@ -94,5 +105,3 @@ else:
     print('\nFree space:')
     for r in results:
         print('{Mounted:25}: {Avail}'.format(**r))
-
-
